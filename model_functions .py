@@ -184,8 +184,3 @@ def save_checkpoint(model, arch, epochs, lr):
         print("the path doesn't exists, so creating one!")
         os.mkdir(save_to_path1) 
     torch.save(checkpoint,save_to_path1+'checkpoint_'+arch+'.pth')
-
-    
-
-  
-    
