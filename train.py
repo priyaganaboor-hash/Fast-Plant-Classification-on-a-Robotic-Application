@@ -1,84 +1,130 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sb
+
+from __future__ import print_function, division
 
 import torch
-from torch import nn
-from torch import optim
-import torch.nn.functional as F
-from torchvision import datasets, transforms, models
-
+import torch.nn as nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
+import numpy as np
+import torchvision
+from torchvision import datasets, models, transforms
 from collections import OrderedDict
+import matplotlib.pyplot as plt
+import time
+import os
+import copy
+
+plt.ion()   # interactive mode
 
 import model_functions
-import processing_functions
-
 import json
 import argparse
-
 parser = argparse.ArgumentParser(description='Train Image Classifier')
 
 # Command line arguments
-parser.add_argument('--arch', type = str, default = 'vgg', help = 'NN Model Architecture')
-parser.add_argument('--learning_rate', type = float, default = 0.001, help = 'Learning Rate')
-parser.add_argument('--hidden_units', type = int, default = 10000, help = 'Neurons in the Hidden Layer')
-parser.add_argument('--epochs', type = int, default = 20, help = 'Epochs')
-parser.add_argument('--gpu', type = str, default = 'cuda', help = 'GPU or CPU')
-parser.add_argument('--save_dir', type = str, default = 'checkpoint.pth', help = 'Path to checkpoint')
 
-arguments = parser.parse_args()
+parser.add_argument('--arch', type = str, default = 'vgg16', help = 'Architecture')
+parser.add_argument('--epochs', type = int, default = 35, help = 'Epochs')
 
-# Image data directories
-data_dir = 'flowers'
-train_dir = data_dir + '/train'
-valid_dir = data_dir + '/valid'
-test_dir = data_dir + '/test'
+# define the main function to include the global code logic 
+def main():
 
-# Transforms for the training, validation, and testing sets
-training_transforms, validation_transforms, testing_transforms = processing_functions.data_transforms()
+    arguments = parser.parse_args()
+    device = torch.device("cuda:0")
 
-# Load the datasets with ImageFolder
-training_dataset, validation_dataset, testing_dataset = processing_functions.load_datasets(train_dir, training_transforms, valid_dir, validation_transforms, test_dir, testing_transforms)
 
-# Using the image datasets and the trainforms, define the dataloaders
-train_loader = torch.utils.data.DataLoader(training_dataset, batch_size=64, shuffle=True)
-validate_loader = torch.utils.data.DataLoader(validation_dataset, batch_size=32)
-test_loader = torch.utils.data.DataLoader(testing_dataset, batch_size=32)
+    #checking the availibility of GPU
+    value = torch.cuda.is_available()
+    if value == True:
+          print('The device',torch.cuda.get_device_name(0),"is available.")
 
-# Build and train the neural network (Transfer Learning)
-if arguments.arch == 'vgg':
-    input_size = 25088
-    model = models.vgg16(pretrained=True)
-elif arguments.arch == 'alexnet':
-    input_size = 9216
-    model = models.alexnet(pretrained=True)
+    # Build and train the neural network (Transfer Learning)
+    if arguments.arch == 'vgg16':
+        input_size = 25088
+        output_size = 4096
+        model = models.vgg16(pretrained=True)
+        for parameter in model.parameters():
+            parameter.requires_grad = False
+        # Build custom classifier
+        model.classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(input_size, output_size)),
+                                            ('relu', nn.ReLU()),
+                                            ('drop', nn.Dropout(p=0.5)),
+                                            ('fc2', nn.Linear(output_size, 2)),
+                                            ('output', nn.LogSoftmax(dim=1))]))
+        param = model.classifier
+        
+    elif arguments.arch == 'alexnet':
+        input_size = 9216
+        output_size = 4096
+        model = models.alexnet(pretrained=True)
+        for parameter in model.parameters():
+            parameter.requires_grad = False
+        # Build custom classifier
+        model.classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(input_size, output_size)),
+                                            ('relu', nn.ReLU()),
+                                            ('drop', nn.Dropout(p=0.5)),
+                                            ('fc2', nn.Linear(output_size, 2)),
+                                            ('output', nn.LogSoftmax(dim=1))]))
+        param = model.classifier
+        
+    else:
+        model = models.resnet50(pretrained=True)
+        # Parameters of newly constructed modules have requires_grad=True by default
+        for parameter in model.parameters():
+            parameter.requires_grad = False
+        model.fc = nn.Linear(model.fc.in_features , 2)
+        param = model.fc
     
-print(model)
 
-# Freeze pretrained model parameters to avoid backpropogating through them
-for parameter in model.parameters():
-    parameter.requires_grad = False
-
-# Build custom classifier
-classifier = nn.Sequential(OrderedDict([('fc1', nn.Linear(input_size, arguments.hidden_units)),
-                                        ('relu', nn.ReLU()),
-                                        ('drop', nn.Dropout(p=0.5)),
-                                        ('fc2', nn.Linear(arguments.hidden_units, 102)),
-                                        ('output', nn.LogSoftmax(dim=1))]))
-
-model.classifier = classifier
-
-# Loss function (since the output is LogSoftmax, we use NLLLoss)
-criterion = nn.NLLLoss()
-
-# Gradient descent optimizer
-optimizer = optim.Adam(model.classifier.parameters(), lr=arguments.learning_rate)
+    print("The Model:",model)
     
-model_functions.train_classifier(model, optimizer, criterion, arguments.epochs, train_loader, validate_loader, arguments.gpu)
+    #Assigning the model to the device (GPU)
+    model = model.to(device) 
     
-model_functions.test_accuracy(model, test_loader, arguments.gpu)
-
-model_functions.save_checkpoint(model, training_dataset, arguments.arch, arguments.epochs, arguments.learning_rate, arguments.hidden_units, input_size)  
-
+    #Optimizer
+    optimizer = optim.SGD(param.parameters(), lr=0.001, momentum=0.9)
     
+    #Loss
+    criterion = nn.CrossEntropyLoss()
+
+    # Decay LR by a factor of 0.1 every 7 epochs
+    exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+
+    #Training the model
+    print('Training the model') 
+    model = model_functions.train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs= arguments.epochs)
+    
+    #testing the model on test dataset
+    print("Testing on the model")    
+    model_functions.test_accuracy(model)
+    
+    #Saving the model
+    model_functions.save_checkpoint(model,arguments.arch, arguments.epochs, 0.001)  
+    print("The model is saved!!")
+
+
+if __name__ == '__main__':
+    
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
