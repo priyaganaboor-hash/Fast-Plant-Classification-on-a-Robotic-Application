@@ -46,7 +46,6 @@ def data_transforms(x):
 # Image data directories
 
 data_dir = 'dataset'
-data_dir_train = ''
 
 # Load the datasets with ImageFolder
 
