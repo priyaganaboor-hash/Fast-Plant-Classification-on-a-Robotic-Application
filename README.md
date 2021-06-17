@@ -3,5 +3,5 @@ This report covers implementation of the transfer learning approach to classify 
 
 The sample dataset is given in this repository, complete dataset can be accessed in the below link: https://drive.google.com/drive/folders/1YJplUuwzZiTiS6toWRiD0V9sytP4EFSC?usp=sharing
 
-# Pictorial representation of thesis
+# Pictorial Representation Of Thesis
 ![flowchart_presentation](https://user-images.githubusercontent.com/74136753/122376589-92b5cf80-cf64-11eb-880f-103aea4ace67.png)
