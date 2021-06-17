@@ -1,3 +1,5 @@
+
+
 from __future__ import print_function, division
 
 import torch
@@ -23,9 +25,9 @@ parser = argparse.ArgumentParser(description='Train Image Classifier')
 # Command line arguments
 
 parser.add_argument('--arch', type = str, default = 'vgg16', help = 'Architecture')
-parser.add_argument('--epochs', type = int, default = 35, help = 'Epochs')
+parser.add_argument('--epochs', type = int, default = 5, help = 'Epochs')
 
-# define the main function to include the global code logic 
+# define the main function to include the global code logic
 def main():
 
     arguments = parser.parse_args()
@@ -51,7 +53,7 @@ def main():
                                             ('fc2', nn.Linear(output_size, 2)),
                                             ('output', nn.LogSoftmax(dim=1))]))
         param = model.classifier
-        
+
     elif arguments.arch == 'alexnet':
         input_size = 9216
         output_size = 4096
@@ -65,7 +67,7 @@ def main():
                                             ('fc2', nn.Linear(output_size, 2)),
                                             ('output', nn.LogSoftmax(dim=1))]))
         param = model.classifier
-        
+
     else:
         model = models.resnet50(pretrained=True)
         # Parameters of newly constructed modules have requires_grad=True by default
@@ -73,16 +75,16 @@ def main():
             parameter.requires_grad = False
         model.fc = nn.Linear(model.fc.in_features , 2)
         param = model.fc
-    
+
 
     print("The Model:",model)
-    
+
     #Assigning the model to the device (GPU)
-    model = model.to(device) 
-    
+    model = model.to(device)
+
     #Optimizer
     optimizer = optim.SGD(param.parameters(), lr=0.001, momentum=0.9)
-    
+
     #Loss
     criterion = nn.CrossEntropyLoss()
 
@@ -90,18 +92,24 @@ def main():
     exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     #Training the model
-    print('Training the model') 
+    print('Training the model')
     model = model_functions.train_model(model, criterion, optimizer, exp_lr_scheduler, num_epochs= arguments.epochs)
-    
+
     #testing the model on test dataset
-    print("Testing on the model")    
+    print("Testing on the model")
     model_functions.test_accuracy(model)
-    
+
+    #solve the confusion matrix
+    cm = model_functions.cal_confusion_matrix(model)
+
+    #plot confusion matrix
+    model_functions.plot_confusion_matrix(cm, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues)
+
     #Saving the model
-    model_functions.save_checkpoint(model,arguments.arch, arguments.epochs, 0.001)  
+    model_functions.save_checkpoint(model,arguments.arch, arguments.epochs, 0.001)
     print("The model is saved!!")
 
 
 if __name__ == '__main__':
-    
+
     main()
