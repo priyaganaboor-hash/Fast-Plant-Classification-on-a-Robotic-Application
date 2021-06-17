@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import time
 import os
 import copy
-
+import itertools
+import matplotlib.pyplot as plt
 plt.ion()   # interactive mode
 
 
@@ -26,42 +27,43 @@ def data_transforms(x):
                     transforms.ToTensor(),
                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                 ])
-        
-    elif x == 'val':    
+
+    elif x == 'val':
         ret_transforms= transforms.Compose([
                     transforms.Resize(256),
                     transforms.CenterCrop(224),
                     transforms.ToTensor(),
                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                 ])
-    else: 
+    else:
         ret_transforms= transforms.Compose([
                     transforms.Resize(256),
                     transforms.ToTensor(),
                     transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
                 ])
-             
+
     return ret_transforms
 # Image data directories
 
 data_dir = 'dataset'
+data_dir_train = ''
 
 # Load the datasets with ImageFolder
 
 image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),data_transforms(x))
-                  
+
 # Using the image datasets and the trainforms, define the dataloaders
-                  
+
               for x in ['train', 'val','test']}
 dataloaders = {x: torch.utils.data.DataLoader(image_datasets[x], batch_size=4,
                                              shuffle=True, num_workers=4)
-               
+
               for x in ['train', 'val','test']}
 dataset_sizes = {x: len(image_datasets[x]) for x in ['train', 'val','test']}
 
 class_names = image_datasets['train'].classes
 
-global device 
+global device
 device = torch.device("cuda:0")
 
 def train_model(model, criterion, optimizer, scheduler, num_epochs):
@@ -140,25 +142,63 @@ def test_accuracy(model):
     model.eval()
 
     with torch.no_grad():
-    
+
         accuracy = 0
-    
+
         for images, labels in dataloaders['test']:
-    
+
             images, labels = images.to(device), labels.to(device)
-    
+
             output = model.forward(images)
 
             probabilities = torch.exp(output)
-        
+
             equality = (labels.data == probabilities.max(dim=1)[1])
-        
+
             accuracy += equality.type(torch.FloatTensor).mean()
-        
-        print("Test Accuracy: {}".format(accuracy/len(dataloaders['test'])))  
+
+        print("Test Accuracy: {}".format(accuracy/len(dataloaders['test'])))
 
 # Function for saving the model checkpoint
 training_dataset = image_datasets['train']
+def cal_confusion_matrix(model):
+    nb_classes = 2
+    confusion_matrix = torch.zeros(nb_classes, nb_classes)
+    with torch.no_grad():
+        for i, (inputs, classes) in enumerate(dataloaders['val']):
+            inputs = inputs.to(device)
+            classes = classes.to(device)
+            outputs = model(inputs)
+            _, preds = torch.max(outputs, 1)
+            for t, p in zip(classes.view(-1), preds.view(-1)):
+                    confusion_matrix[t.long(), p.long()] += 1
+
+    return confusion_matrix
+
+
+def plot_confusion_matrix(cm, classes = class_names, normalize=False, title='Confusion matrix', cmap=plt.cm.Blues):
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        print("Normalized confusion matrix")
+    else:
+        print('Confusion matrix, without normalization')
+
+    print(cm)
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    fmt = '.2f' 
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], fmt), horizontalalignment="center", color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
 
 def save_checkpoint(model, arch, epochs, lr):
 
@@ -177,10 +217,10 @@ def save_checkpoint(model, arch, epochs, lr):
 
     save_to_path1 = 'Model_weights_checkpoint/'
 
-    
+
     if os.path.isdir(save_to_path1):
         print('the path exits')
     else:
         print("the path doesn't exists, so creating one!")
-        os.mkdir(save_to_path1) 
+        os.mkdir(save_to_path1)
     torch.save(checkpoint,save_to_path1+'checkpoint_'+arch+'.pth')
