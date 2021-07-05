@@ -1,0 +1,27 @@
+<launch>
+
+	<!-- My Package launch file -->
+	<node pkg="geranium_azalea" type="geranium_azalea.py" name="geranium_azalea" output="screen" required="true">
+	</node>
+	
+
+	<!-- IMAGENET -->
+	<arg name="model_name" default="googlenet"/>
+	<arg name="model_path" default="/home/bm-jetson/catkin_ws/src/ros_deep_learning/PlantClassification/resnet50.onnx"/>
+	<arg name="prototxt_path" default=""/>
+	<arg name="class_labels_path" default="/home/bm-jetson/catkin_ws/src/ros_deep_learning/PlantClassification/labels.txt"/>
+	<arg name="input_blob" default="input_0"/>
+	<arg name="output_blob" default="output_0"/>
+
+	<node pkg="ros_deep_learning" type="imagenet" name="imagenet" output="screen">
+		<remap from="/imagenet/image_in" to="/video_source/raw"/>
+		<param name="model_name" value="$(arg model_name)"/>
+		<param name="model_path" value="$(arg model_path)"/>
+		<param name="prototxt_path" value="$(arg prototxt_path)"/>
+		<param name="class_labels_path" value="$(arg class_labels_path)"/>
+		<param name="input_blob" value="$(arg input_blob)"/>
+		<param name="output_blob" value="$(arg output_blob)"/>
+	</node>
+	
+
+</launch>
