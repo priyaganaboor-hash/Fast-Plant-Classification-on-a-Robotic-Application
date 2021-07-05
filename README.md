@@ -6,3 +6,8 @@ The sample dataset is given in this repository, complete dataset can be accessed
 ![flowchart](https://github.com/priyaganaboor-hash/Fast-Plant-Classification-on-a-Robotic-Application/blob/main/Blank%20diagram.png)
 # Pictorial Representation Of Thesis
 ![flowchart_presentation](https://user-images.githubusercontent.com/74136753/122376589-92b5cf80-cf64-11eb-880f-103aea4ace67.png)
+
+# Link to the References
+1. https://github.com/LeanManager/PyTorch_Image_Classifier
+2. https://github.com/dusty-nv/ros_deep_learning
+3. https://github.com/dusty-nv/jetson-inference
