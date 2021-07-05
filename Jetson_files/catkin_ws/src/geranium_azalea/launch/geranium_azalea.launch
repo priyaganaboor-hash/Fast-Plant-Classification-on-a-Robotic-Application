@@ -7,9 +7,9 @@
 
 	<!-- IMAGENET -->
 	<arg name="model_name" default="googlenet"/>
-	<arg name="model_path" default="/home/bm-jetson/catkin_ws/src/ros_deep_learning/PlantClassification/resnet50.onnx"/>
+	<arg name="model_path" default="../resnet50.onnx"/>
 	<arg name="prototxt_path" default=""/>
-	<arg name="class_labels_path" default="/home/bm-jetson/catkin_ws/src/ros_deep_learning/PlantClassification/labels.txt"/>
+	<arg name="class_labels_path" default="../labels.txt"/>
 	<arg name="input_blob" default="input_0"/>
 	<arg name="output_blob" default="output_0"/>
 
