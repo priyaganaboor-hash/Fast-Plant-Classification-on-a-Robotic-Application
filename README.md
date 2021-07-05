@@ -9,5 +9,6 @@ The sample dataset is given in this repository, complete dataset can be accessed
 
 # Link to the References
 1. https://github.com/LeanManager/PyTorch_Image_Classifier
-2. https://github.com/dusty-nv/ros_deep_learning
-3. https://github.com/dusty-nv/jetson-inference
+2. https://pytorch.org/tutorials/beginner/transfer_learning_tutorial.html
+3. https://github.com/dusty-nv/ros_deep_learning
+4. https://github.com/dusty-nv/jetson-inference
